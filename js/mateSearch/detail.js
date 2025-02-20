@@ -344,6 +344,25 @@ async function initializePage() {
   setupEventListeners(postingId);
   fetchPostingDetail(postingId, user.id);
   await loadSavedRoutes(postingId); // 저장된 경로 데이터 로드
+
+  document.querySelector("#chat").addEventListener("click", function (event) {
+  event.preventDefault();
+
+  
+  const username = document.getElementById("detail-author-username").innerText;
+
+
+  // URL에 정보 포함
+  const chatUrl = `../chat/chat.html?username=${encodeURIComponent(username)}`;
+
+  // 새 창으로 열기 (크기 지정 가능)
+  window.open(chatUrl, "_blank", "width=400,height=650");
+});
+
+
+
+
+
 }
 
 // 지도 로직 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -320,6 +320,94 @@ async function updatePassword(newPassword) {
   await supabase.auth.signOut();
   window.location.href="./login.html";
 }
+async function getOrCreateChatRoom(opponentUsername) {
+  const { data: opponentUser, error : usererror } = await supabase
+    .from("userinfo")
+    .select("id")
+    .eq("username", opponentUsername);
+
+  const opponentId = opponentUser[0].id;
+  
+  const { data } = await supabase.auth.getUser();
+  const userId = data.user.id;
+
+  if (!opponentUser) return;
+
+  // 채팅방 존재 여부 확인
+  const { data: room, error } = await supabase
+  .from('chat_room')
+  .select('id')
+  .or(`and(user1_id.eq.${userId},user2_id.eq.${opponentId}),and(user1_id.eq.${opponentId},user2_id.eq.${userId})`)
+  .single();
+
+
+
+  if (error) {
+    console.error("Error 1 checking chat room:", error);
+  }
+
+  // 채팅방이 존재하지 않으면 새로 생성
+  if (!room) {
+    const { error: insertError } = await supabase
+      .from('chat_room')
+      .insert([
+        { user1_id: userId, user2_id: opponentId }
+      ]);
+    if (insertError) {
+      console.error("Error 2 creating chat room:", insertError);
+    } else {
+      console.log("Chat room created!");
+    }
+  } else {
+    return room.id;
+  }
+
+  const { data: rooms, errors } = await supabase
+    .from('chat_room')
+    .select('id')
+    .or(`and(user1_id.eq.${userId},user2_id.eq.${opponentId}),and(user1_id.eq.${opponentId},user2_id.eq.${userId})`)
+    .single();
+
+  return rooms.id;
+}
+
+async function getMessage(chatRoomId){
+  const { data, error } = await supabase
+    .from('chat')
+    .select('*')
+    .eq('chat_room_id', chatRoomId) // 현재 채팅방 ID에 해당하는 메시지만 가져오기
+    .order('sent_at', { ascending: true }); // 오래된 메시지부터
+  
+  if(error){
+    return error;
+  }
+  console.log(data);
+  return data;
+}
+
+async function sendMessage(chatroom, opponentUsername, message) {
+  const { data: opponentUser, error : usererror } = await supabase
+    .from("userinfo")
+    .select("id")
+    .eq("username", opponentUsername);
+
+  const opponentId = opponentUser[0].id;
+
+  const { data } = await supabase.auth.getUser();
+  const userId = data.user.id;
+
+  if (!opponentUser) return;
+
+  const { error } = await supabase
+    .from('chat')
+    .insert([{
+      chat_room_id: chatroom,
+      sender_uuid: userId,
+      receiver_uuid: opponentId,
+      message_content: message,
+
+    }]);
+}
 
 
 export {
@@ -344,5 +432,8 @@ export {
   fetchLatestPosts_auth,
   setAnswer,
   updatePassword,
-  resetPassword
+  resetPassword,
+  getOrCreateChatRoom,
+  getMessage,
+  sendMessage
 };
